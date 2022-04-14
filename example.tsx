@@ -1,7 +1,7 @@
-import React, { memo, useEffect, useState } from 'react';
-import { fromJS, List, Map } from 'immutable';
-import { withLDConsumer } from 'launchdarkly-react-client-sdk';
-import _ from 'lodash';
+import React, { memo, useEffect, useState } from "react";
+import { fromJS, List, Map } from "immutable";
+import { withLDConsumer } from "launchdarkly-react-client-sdk";
+import { every, isNil, isEqual } from "lodash";
 import {
   AddList,
   Alert,
@@ -12,39 +12,39 @@ import {
   modalTypes,
   SimpleModal,
   Svgs,
-} from '@demandbase/demandbase-ui-core';
-import Prompt from 'components/common/prompt';
+} from "@demandbase/demandbase-ui-core";
+import Prompt from "components/common/prompt";
 import {
   AdminEngagementV2ContainerProps,
   IColDefElementType,
-} from './admin_engagement_v2_container';
-import EngagementRuleTypes from 'constants/engagement_rule_types_v2_combined_with_alfa';
-import AdminActions from 'actions/admin_actions';
+} from "./admin_engagement_v2_container";
+import EngagementRuleTypes from "constants/engagement_rule_types_v2_combined_with_alfa";
+import AdminActions from "actions/admin_actions";
 import {
   getActivityTypeByLabelId,
   INTENT_RULES_LABEL,
   INTENT_SURGE_LABEL,
   INTENT_TRENDING_RULES_LABEL,
-} from 'constants/engagement_intent_rule';
+} from "constants/engagement_intent_rule";
 
 //AdminEngagementV2 components
-import WeightListsContainer from './admin_engagement_v2_weighting';
-import AdminEngagementV2SalesforceGeneralActivities from './admin_engagement_v2_salesforce_general_activities';
-import AdminEngagementV2RuleRow from './admin_engagement_v2_rule_row';
-import AdminEngagementV2Tabs from './admin_engagement_v2_tabs';
-import AdminEngagementV2IntentActivities from './admin_engagement_v2_intent_activities';
+import WeightListsContainer from "./admin_engagement_v2_weighting";
+import AdminEngagementV2SalesforceGeneralActivities from "./admin_engagement_v2_salesforce_general_activities";
+import AdminEngagementV2RuleRow from "./admin_engagement_v2_rule_row";
+import AdminEngagementV2Tabs from "./admin_engagement_v2_tabs";
+import AdminEngagementV2IntentActivities from "./admin_engagement_v2_intent_activities";
 
-import './admin_engagement_v2.scss';
+import "./admin_engagement_v2.scss";
 
-const DEFAULT_CLASSNAME = 'admin-engagement-v2';
+const DEFAULT_CLASSNAME = "admin-engagement-v2";
 const GA_ALERT_MESSAGE =
-  'General Activities that typically come from your organization’s website include: any connected emails or calendars from your reps, and other marketing activities if you are using Hubspot, Eloqua, or Pardot.';
+  "General Activities that typically come from your organization’s website include: any connected emails or calendars from your reps, and other marketing activities if you are using Hubspot, Eloqua, or Pardot.";
 
 const WEIGHTING_ALERT_MESSAGE =
-  'Demandbase allows administrators to assign Weighting or Leveling to minutes assigned based on the person ' +
-  'title or other fields of interest. For example, Engagement Minutes from a CEO might be considered more ' +
-  'significant, so tou may want to assign a Weighting multiplier to reflect the additional value. You can also ' +
-  'pull in your own personas or other account or people fields and add your own custom filters.';
+  "Demandbase allows administrators to assign Weighting or Leveling to minutes assigned based on the person " +
+  "title or other fields of interest. For example, Engagement Minutes from a CEO might be considered more " +
+  "significant, so tou may want to assign a Weighting multiplier to reflect the additional value. You can also " +
+  "pull in your own personas or other account or people fields and add your own custom filters.";
 
 const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
   const {
@@ -65,11 +65,14 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     viewTab,
   } = props;
 
-  const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
+  const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] =
+    useState(false);
   const [targetId, setTargetId] = useState(null);
   const [targetIdx, setTargetIdx] = useState(null);
   const [ruleIdsToBeDeleted, setRuleIdsToBeDeleted] = useState([]);
-  const [trendingRuleIdsToBeDeleted, setTrendingRuleIdsToBeDeleted] = useState([]);
+  const [trendingRuleIdsToBeDeleted, setTrendingRuleIdsToBeDeleted] = useState(
+    []
+  );
   const [surgeRuleIdsToBeDeleted, setSurgeRuleIdsToBeDeleted] = useState([]);
   const [initialTrendingIntentRules, setInitialTrendingRules] = useState(null);
   const [initialIntentSurgeRules, setInitialIntentSurgeRules] = useState(null);
@@ -91,23 +94,23 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
   const headerRenderer = () => {
     return () =>
       colDef.map(({ key, label }: IColDefElementType) => (
-        <div className='row-header-item' key={`${key}-${label}`}>
-          <span className={'row-header-label'}>{label}</span>
+        <div className="row-header-item" key={`${key}-${label}`}>
+          <span className={"row-header-label"}>{label}</span>
         </div>
       ));
   };
 
-  const isGeneralActivityRuleEmpty = (rule: Map<string, any>): boolean => {
-    return rule.get('activityTypeId') === undefined;
+  const isGeneralActivityRuleEmpty = (rule: Map<string, string>): boolean => {
+    return rule.get("activityTypeId") === undefined;
   };
-  const isWeightingRuleEmpty = (rule: Map<string, any>): boolean => {
-    return rule.get('name') === undefined;
+  const isWeightingRuleEmpty = (rule: Map<string, string>): boolean => {
+    return rule.get("name") === undefined;
   };
 
-  const rowRenderer = (isEmptyRule?: string, rowProps?: any) => {
-    return (rule: Map<string, any>, changeFunc: () => void, idx: number) => {
+  const rowRenderer = (isEmptyRule?: string, rowProps?: string) => {
+    return (rule: Map<string, string>, changeFunc: () => void, idx: number) => {
       let isEmpty = false;
-      if (isEmptyRule === 'ga') {
+      if (isEmptyRule === "ga") {
         isEmpty = isGeneralActivityRuleEmpty(rule);
       }
 
@@ -118,13 +121,13 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
             onChange={changeFunc}
             rule={rule}
             type={(rowProps && rowProps.type) || type}
-            key={`rule-${rule.get('id')}`}
+            key={`rule-${rule.get("id")}`}
             isEmpty={isEmpty}
             {...rowProps}
           />
-          <div className='delete-icon-wrapper'>
+          <div className="delete-icon-wrapper">
             <Svgs.IconTrash
-              className='delete-icon'
+              className="delete-icon"
               onClick={() => toggleDeleteConfirmationModal(rule, idx)}
             />
           </div>
@@ -133,59 +136,70 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     };
   };
 
-  const onRuleChange = (payload: List<Map<string, any>>) => {
+  const onRuleChange = (payload: List<Map<string, number>>) => {
     let updatedPayload;
     if (type === EngagementRuleTypes.INTENT_RULES.key) {
       updatedPayload = AdminActions.getUpdatedPayload(payload);
     } else {
       updatedPayload = payload;
     }
-    actions.changeEngagementRules(updatedPayload, 'rules');
+    actions.changeEngagementRules(updatedPayload, "rules");
   };
 
-  const toggleDeleteConfirmationModal = (a?: any, idx?: number) => {
+  const toggleDeleteConfirmationModal = (
+    a?: List<Map<string, number>>,
+    idx?: number
+  ) => {
     setShowDeleteConfirmationModal(!showDeleteConfirmationModal);
     setTargetId(a || null);
     setTargetIdx(idx);
 
     if (type === EngagementRuleTypes.INTENT_RULES.key && a) {
-      const activityTypeId = a.get('activityTypeId');
+      const activityTypeId = a.get("activityTypeId");
       const isTrendingIntentRule =
-        getActivityTypeByLabelId(activityTypes, INTENT_TRENDING_RULES_LABEL) === activityTypeId;
+        getActivityTypeByLabelId(activityTypes, INTENT_TRENDING_RULES_LABEL) ===
+        activityTypeId;
       const isIntentSurgeRule =
-        getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL) === activityTypeId;
+        getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL) ===
+        activityTypeId;
       isTrendingIntentRule &&
-        setTrendingRuleIdsToBeDeleted([...trendingRuleIdsToBeDeleted, ...[a.get('id')]]);
+        setTrendingRuleIdsToBeDeleted([
+          ...trendingRuleIdsToBeDeleted,
+          ...[a.get("id")],
+        ]);
       isIntentSurgeRule &&
-        setSurgeRuleIdsToBeDeleted([...surgeRuleIdsToBeDeleted, ...[a.get('id')]]);
+        setSurgeRuleIdsToBeDeleted([
+          ...surgeRuleIdsToBeDeleted,
+          ...[a.get("id")],
+        ]);
     }
   };
 
   const verifyEntry = (colDefFromProps?: Array<IColDefElementType>) => {
-    return (rule: Map<string, any>) => {
-      return _.every(
+    return (rule: Map<string, string>) => {
+      return every(
         (colDefFromProps || colDef) as Array<IColDefElementType>,
         ({ key: colDefKey, isRequired }) => {
-          if (isRequired && _.isNil(rule.get(colDefKey))) {
+          if (isRequired && isNil(rule.get(colDefKey))) {
             console.warn(
               `[admin_engagement] @verifyEntry -> entry invalid. rule.get("${colDefKey}") must be defined. Instead got: `,
               rule.get(colDefKey)
             );
           }
-          return !isRequired || !_.isNil(rule.get(colDefKey));
+          return !isRequired || !isNil(rule.get(colDefKey));
         }
       );
     };
   };
 
-  const onTrendingIntentRuleChange = (payload: List<Map<string, any>>) => {
+  const onTrendingIntentRuleChange = (payload: List<Map<string, string>>) => {
     !initialTrendingIntentRules && setInitialTrendingRules(trendingIntentRules);
-    actions.changeEngagementRules(payload, 'trendingIntentRules');
+    actions.changeEngagementRules(payload, "trendingIntentRules");
   };
 
-  const onIntentSurgeRuleChange = (payload: List<Map<string, any>>) => {
+  const onIntentSurgeRuleChange = (payload: List<Map<string, string>>) => {
     !initialIntentSurgeRules && setInitialIntentSurgeRules(intentSurgeRules);
-    actions.changeEngagementRules(payload, 'intentSurgeRules');
+    actions.changeEngagementRules(payload, "intentSurgeRules");
   };
 
   const mainContent = () => {
@@ -212,7 +226,7 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
         onChange={onRuleChange}
         onDelete={toggleDeleteConfirmationModal}
         values={rules}
-        headerClassName='list-header'
+        headerClassName="list-header"
         addBtnSize={enSizes.SM}
         verifyEntry={verifyEntry()}
       />
@@ -253,41 +267,42 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     const generalRules = initGeneralRules.filter(
       (item) =>
         !(
-          item.get('activityTypeId') === getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL)
+          item.get("activityTypeId") ===
+          getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL)
         )
     );
 
     const formatedIntentSurgeRules = intentSurgeRules
-      .filter((rule) => Boolean(rule.get('activityTypeId')))
+      .filter((rule) => Boolean(rule.get("activityTypeId")))
       .map((rule) => {
-        let values = rule.get('keywords') || (List([]) as any);
-        values = values.map((val: string | Map<string, any>) => {
-          if (typeof val === 'string') {
+        let values = rule.get("keywords");
+        values = values.map((val: string | Map<string, string>) => {
+          if (typeof val === "string") {
             return val;
           } else {
-            return val.get('name');
+            return val.get("name");
           }
         });
-        return rule.set('values', values).delete('keywords');
+        return rule.set("values", values).delete("keywords");
       });
 
     return fromJS([...generalRules.toJS(), ...formatedIntentSurgeRules.toJS()]);
   };
 
-  const prepareTrendingIntentRulesForSaving = (rule: Map<string, any>) => {
-    let updatedRule = Map.isMap(rule) ? rule : (fromJS(rule) as any);
+  const prepareTrendingIntentRulesForSaving = (rule: Map<string, string>) => {
+    let updatedRule = Map.isMap(rule) ? rule : fromJS(rule);
     console.log(updatedRule);
-    if (updatedRule.get('keywordsType')) {
-      updatedRule = updatedRule.delete('keywordsType');
+    if (updatedRule.get("keywordsType")) {
+      updatedRule = updatedRule.delete("keywordsType");
     }
-    if (!updatedRule.get('activityTypeId')) {
+    if (!updatedRule.get("activityTypeId")) {
       updatedRule = updatedRule.set(
-        'activityTypeId',
+        "activityTypeId",
         getActivityTypeByLabelId(activityTypes, INTENT_TRENDING_RULES_LABEL)
       );
     }
     console.log(updatedRule.toJS());
-    updatedRule = updatedRule.delete('trending').delete('strength');
+    updatedRule = updatedRule.delete("trending").delete("strength");
     return updatedRule;
   };
 
@@ -296,31 +311,31 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
       ? rulesForDeletionIds.toJS()
       : rulesForDeletionIds;
 
-    let filteredRules: any;
+    let filteredRules: List<Map<string, string>>;
     switch (viewTab) {
       case EngagementRuleTypes.GENERAL_ACTIVITIES.route: {
-        filteredRules = rules.filter((rule) => !isGeneralActivityRuleEmpty(rule)) as List<
-          Map<string, any>
-        >;
+        filteredRules = rules.filter(
+          (rule) => !isGeneralActivityRuleEmpty(rule)
+        ) as List<Map<string, string>>;
         break;
       }
       case EngagementRuleTypes.INTENT_RULES.route: {
         filteredRules = rules
-          .filter((rule: Map<string, any>) => Boolean(rule.get('op')))
+          .filter((rule: Map<string, string>) => Boolean(rule.get("op")))
           .map((rule) => {
             const keywordSet = AdminActions.getUpdatedKeywordSet(rule);
             let updatedRule = rule;
-            if (!updatedRule.get('activityTypeId')) {
+            if (!updatedRule.get("activityTypeId")) {
               updatedRule = updatedRule.set(
-                'activityTypeId',
+                "activityTypeId",
                 getActivityTypeByLabelId(activityTypes, INTENT_RULES_LABEL)
               );
             }
             if (keywordSet.size) {
               return updatedRule
-                .delete('keywordSet')
-                .delete('keywordsType')
-                .set('keywords', keywordSet);
+                .delete("keywordSet")
+                .delete("keywordsType")
+                .set("keywords", keywordSet);
             }
             return updatedRule;
           });
@@ -328,15 +343,18 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
       }
       case EngagementRuleTypes.WEIGHTING.route: {
         filteredRules = rules.filter(
-          (rule: Map<string, any>) => !isWeightingRuleEmpty(rule)
-        ) as List<Map<string, any>>;
+          (rule: Map<string, string>) => !isWeightingRuleEmpty(rule)
+        ) as List<Map<string, string>>;
         break;
       }
       default:
         filteredRules = rules;
     }
 
-    const combinedIdsForDeletion: Array<number> = [...ruleIdsToBeDeleted, ...rulesForDeletionIdsJS];
+    const combinedIdsForDeletion: Array<number> = [
+      ...ruleIdsToBeDeleted,
+      ...rulesForDeletionIdsJS,
+    ];
     actions.saveEngagementRules(type, combinedIdsForDeletion, filteredRules);
     if (type === EngagementRuleTypes.INTENT_RULES.key) {
       const intentSurgeRulesForSaving = prepareIntentSurgeRulesForSaving();
@@ -346,17 +364,18 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
         intentSurgeRulesForSaving
       );
 
-      const trendingIntentRulesList: any = trendingIntentRules.map((rule) => {
-        const keywordSet = AdminActions.getUpdatedKeywordSet(rule);
-        const updatedRule = prepareTrendingIntentRulesForSaving(rule);
-        if (keywordSet.size) {
-          return updatedRule
-            .delete('keywordSet')
-            .delete('keywordsType')
-            .set('keywords', keywordSet);
-        }
-        return updatedRule.delete('keywordSet');
-      });
+      const trendingIntentRulesList: List<Map<string, string>> =
+        trendingIntentRules.map((rule) => {
+          const keywordSet = AdminActions.getUpdatedKeywordSet(rule);
+          const updatedRule = prepareTrendingIntentRulesForSaving(rule);
+          if (keywordSet.size) {
+            return updatedRule
+              .delete("keywordSet")
+              .delete("keywordsType")
+              .set("keywords", keywordSet);
+          }
+          return updatedRule.delete("keywordSet");
+        });
       actions.saveEngagementRules(
         EngagementRuleTypes.TRENDING_INTENT.key,
         trendingRuleIdsToBeDeleted,
@@ -369,34 +388,41 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
   };
 
   const onDeleteRule = () => {
-    const activityTypeId = targetId.get('activityTypeId');
+    const activityTypeId = targetId.get("activityTypeId");
     const isTrendingIntentRule =
-      getActivityTypeByLabelId(activityTypes, INTENT_TRENDING_RULES_LABEL) === activityTypeId;
+      getActivityTypeByLabelId(activityTypes, INTENT_TRENDING_RULES_LABEL) ===
+      activityTypeId;
     const isIntentSurgeRule =
-      getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL) === activityTypeId;
+      getActivityTypeByLabelId(activityTypes, INTENT_SURGE_LABEL) ===
+      activityTypeId;
 
     const notInitialRules = rules !== null;
     const dontHaveActivityTypeId = !activityTypeId;
     const notIntentOrSurgeRule = !isIntentSurgeRule && !isTrendingIntentRule;
     const notNullSurgeRule = intentSurgeRules !== null && isIntentSurgeRule;
-    const notNullTrendingRule = trendingIntentRules !== null && isTrendingIntentRule;
+    const notNullTrendingRule =
+      trendingIntentRules !== null && isTrendingIntentRule;
 
     if (notInitialRules && (dontHaveActivityTypeId || notIntentOrSurgeRule)) {
       const newRules = rules.delete(targetIdx);
-      actions.changeEngagementRules(newRules, 'rules');
+      actions.changeEngagementRules(newRules, "rules");
     }
     if (notNullSurgeRule) {
       !initialIntentSurgeRules && setInitialIntentSurgeRules(intentSurgeRules);
       const newIntentSurgeRules = intentSurgeRules.delete(targetIdx);
-      actions.changeEngagementRules(newIntentSurgeRules, 'intentSurgeRules');
+      actions.changeEngagementRules(newIntentSurgeRules, "intentSurgeRules");
     }
     if (notNullTrendingRule) {
-      !initialTrendingIntentRules && setInitialTrendingRules(trendingIntentRules);
+      !initialTrendingIntentRules &&
+        setInitialTrendingRules(trendingIntentRules);
       const newTrendingIntentRules = trendingIntentRules.delete(targetIdx);
-      actions.changeEngagementRules(newTrendingIntentRules, 'trendingIntentRules');
+      actions.changeEngagementRules(
+        newTrendingIntentRules,
+        "trendingIntentRules"
+      );
     }
     setRuleIdsToBeDeleted((previousValue) => {
-      return [...previousValue, targetId.get('id')];
+      return [...previousValue, targetId.get("id")];
     });
     toggleDeleteConfirmationModal();
   };
@@ -405,29 +431,29 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     if (type === EngagementRuleTypes.INTENT_RULES.key) {
       actions.changeEngagementRules(
         initialTrendingIntentRules || trendingIntentRules,
-        'trendingIntentRules'
+        "trendingIntentRules"
       );
       actions.changeEngagementRules(
         initialIntentSurgeRules || intentSurgeRules,
-        'intentSurgeRules'
+        "intentSurgeRules"
       );
       setTrendingRuleIdsToBeDeleted([]);
       setSurgeRuleIdsToBeDeleted([]);
     }
 
     setRuleIdsToBeDeleted([]);
-    actions.changeEngagementRules(initialRules, 'rules');
+    actions.changeEngagementRules(initialRules, "rules");
   };
 
   const intentSurgeRulesSame =
     initialIntentSurgeRules === null ||
-    _.isEqual(
+    isEqual(
       initialIntentSurgeRules && initialIntentSurgeRules.toJS(),
       intentSurgeRules && intentSurgeRules.toJS()
     );
   const trendingIntentRulesSame =
     initialTrendingIntentRules === null ||
-    _.isEqual(
+    isEqual(
       initialTrendingIntentRules && initialTrendingIntentRules.toJS(),
       trendingIntentRules && trendingIntentRules.toJS()
     );
@@ -437,15 +463,22 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     surgeRuleIdsToBeDeleted.length;
 
   const rulesAreEqual =
-    rulesSame && intentSurgeRulesSame && trendingIntentRulesSame && !isRulesDeleted;
+    rulesSame &&
+    intentSurgeRulesSame &&
+    trendingIntentRulesSame &&
+    !isRulesDeleted;
 
   const actionButtonsGroup = (
     <div className={`${DEFAULT_CLASSNAME}__bottom_action_group`}>
-      <Button disabled={rulesAreEqual} onClick={onCancelChanges} enStyle={enStyles.SECONDARY}>
-        {'Cancel'}
+      <Button
+        disabled={rulesAreEqual}
+        onClick={onCancelChanges}
+        enStyle={enStyles.SECONDARY}
+      >
+        {"Cancel"}
       </Button>
       <Button disabled={rulesAreEqual} onClick={onSave}>
-        {'Save'}
+        {"Save"}
       </Button>
     </div>
   );
@@ -453,13 +486,13 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
   const deleteModal = showDeleteConfirmationModal && (
     <SimpleModal
       saveButton
-      saveButtonStyle={'DANGER'}
+      saveButtonStyle={"DANGER"}
       onSave={onDeleteRule}
-      saveLabel={'Delete'}
-      title={'Delete Rule Confirmation'}
+      saveLabel={"Delete"}
+      title={"Delete Rule Confirmation"}
       closeButton
       type={modalTypes.SECONDARY}
-      closeLabel={'Cancel'}
+      closeLabel={"Cancel"}
       onClose={toggleDeleteConfirmationModal}
     >
       <div className={`${DEFAULT_CLASSNAME}__delete-modal`}>
@@ -469,7 +502,7 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
           </div>
         </div>
         <div className={`${DEFAULT_CLASSNAME}__delete-modal-content`}>
-          {'Are you sure you want to delete this rule?'}
+          {"Are you sure you want to delete this rule?"}
         </div>
       </div>
     </SimpleModal>
@@ -491,23 +524,31 @@ const AdminEngagementV2 = (props: AdminEngagementV2ContainerProps) => {
     }
 
     return (
-      <Alert type={alertTypes.INFO} className={`${DEFAULT_CLASSNAME}__alert`} disableAnimation>
+      <Alert
+        type={alertTypes.INFO}
+        className={`${DEFAULT_CLASSNAME}__alert`}
+        disableAnimation
+      >
         {label}
       </Alert>
     );
   };
 
   return (
-    <div className='admin-card-canvas'>
+    <div className="admin-card-canvas">
       <div className={`admin-card ${DEFAULT_CLASSNAME}`}>
         <AdminEngagementV2Tabs viewTab={viewTab} />
         {alert()}
-        <div className={`${DEFAULT_CLASSNAME}__main-content`}>{mainContent()}</div>
+        <div className={`${DEFAULT_CLASSNAME}__main-content`}>
+          {mainContent()}
+        </div>
         {actionButtonsGroup}
         {deleteModal}
         <Prompt
           when={!rulesAreEqual}
-          message={'You have unsaved changes, are you sure you want to navigate away?'}
+          message={
+            "You have unsaved changes, are you sure you want to navigate away?"
+          }
         />
       </div>
     </div>
